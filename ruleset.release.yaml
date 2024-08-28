@@ -1,0 +1,42 @@
+---
+docker:
+  registry: armdocker.rnd.ericsson.se/docker-default/sandbox/vnflcm
+builder:
+  env:
+    - GLOBAL_IMAGE_NAME: eric-vm-vnfm-migration
+    - GLOBAL_CHART_NAME: eric-vm-vnfm-migration
+    - GLOBAL_VERSION: $(project::get_version ${RELEASE:-})
+    #- GLOBAL_HELM_REPO: https://arm.rnd.ki.sw.ericsson.se/artifactory/proj-eric-dxp-ms-all-helm
+    #- GLOBAL_HELM_REPO_TOKEN: AKCp5bB3hEXsoXHnqrCTxk3NcKQxLmf31C44QqDTBfmzzAMfDhJyWiyo2h68eNj2AhzA8gEPQ
+    - GLOBAL_HELM_FOLDER: 'helm-target'
+    - GLOBAL_REPO_NAME: $(git::remote::path)
+ruleset:
+  - docker:
+      env:
+        - DOCKER_BUILD_ARGS:
+          - APP_VERSION="${GLOBAL_VERSION}"
+  - helm:
+      env:
+        - HELM_DESTINATION_FOLDER: ${GLOBAL_HELM_FOLDER}
+        - HELM_REPO: ${GLOBAL_HELM_REPO}/${GLOBAL_CHART_NAME}
+        - HELM_REPO_API_TOKEN: ${GLOBAL_HELM_REPO_TOKEN}
+        - HELM_REPO_INDEX: false
+        - HELM_VALUES: >-
+            imageCredentials:repository=${DOCKER_REGISTRY}
+            images:${GLOBAL_IMAGE_NAME}:tag=${GLOBAL_VERSION}
+  - adp.artifacts:
+      env:
+        - CHART_NAME: ${GLOBAL_CHART_NAME}
+        - CHART_VERSION: ${GLOBAL_VERSION}
+        - CHART_REPO: ${GLOBAL_HELM_REPO}
+        - IMAGE_NAME: ${GLOBAL_IMAGE_NAME}
+        - IMAGE_TAG: ${GLOBAL_VERSION}
+        - IMAGE_REPO: ${DOCKER_REGISTRY}/${GLOBAL_REPO_NAME}
+        - CICD_1: false
+        - CICD_2: false
+        - CICD_3: false
+        - CICD_4: false
+        - CICD_5: false
+        - CICD_6: false
+        - CICD_7: false
+  - git

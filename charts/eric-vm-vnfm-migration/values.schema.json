@@ -1,0 +1,23 @@
+{
+   "$schema":"http://json-schema.org/draft-07/schema#",
+   "type":"object",
+   "additionalProperties":true,
+   "properties":{
+      "migration":{
+         "type":"object",
+         "additionalProperties":false,
+         "properties":{
+            "enabled":{
+               "type":"boolean"
+            }
+         },
+         "required":[
+            "enabled"
+         ]
+      }
+   },
+   "required":[
+      "migration"
+   ]
+}
+

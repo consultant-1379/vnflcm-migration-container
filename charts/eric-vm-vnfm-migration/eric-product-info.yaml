@@ -1,0 +1,10 @@
+productName: "VMVNFM migration Chart"
+productNumber: "TBC"
+images:
+  mainImage:
+    productName: "VMVNFM Migration"
+    productNumber: "TBC"
+    registry: "armdocker.rnd.ericsson.se"
+    repoPath: "proj-vnflcm"
+    name: "eric-vm-vnfm-migration"
+    tag: "latest"

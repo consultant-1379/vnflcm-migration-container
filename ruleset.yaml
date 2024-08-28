@@ -1,0 +1,30 @@
+---
+docker:
+  registry: armdocker.rnd.ericsson.se/docker-default/sandbox/vnflcm/dirty
+builder:
+  env:
+    - GLOBAL_IMAGE_NAME: eric-vm-vnfm-migration
+    - GLOBAL_CHART_NAME: eric-vm-vnfm-migration
+    - GLOBAL_VERSION: $(project::get_version ${RELEASE:-})
+    #- GLOBAL_HELM_REPO: https://arm.rnd.ki.sw.ericsson.se/artifactory/proj-eric-dxp-ms-all-helm
+    - GLOBAL_HELM_FOLDER: 'helm-target'
+    - GLOBAL_BASELINE_VERSION: 0.0.1-13
+    - GLOBAL_K8S_NAMESPACE: deploytestcode-ns-bob-example-java-maven
+ruleset:
+  - doc
+  - javamvn:
+      env:
+        - MVN_BUILD_FLAGS: ${GLOBAL_MVN_FLAGS}
+        - MVN_TEST_FLAGS: ${GLOBAL_MVN_FLAGS}
+        - MVN_CLEAN_FLAGS: ${GLOBAL_MVN_FLAGS}
+  - docker:
+      env:
+        - DOCKER_BUILD_ARGS:
+          - APP_VERSION=${GLOBAL_VERSION}
+  - helm:
+      env:
+        - PUSH_WORD_FILTER: "true"
+        - HELM_DESTINATION_FOLDER: ${GLOBAL_HELM_FOLDER}
+        - HELM_VALUES: >-
+            imageCredentials:repository=${DOCKER_REGISTRY}
+            images:${GLOBAL_IMAGE_NAME}:tag=${GLOBAL_VERSION}

@@ -1,0 +1,95 @@
+{{ if .Values.migration.enabled -}}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ template "eric-vm-vnfm-migration.name" . }}
+  labels:
+    app: {{ template "eric-vm-vnfm-migration.name" . }}
+    chart: {{ template "eric-vm-vnfm-migration.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+  {{- include "eric-vm-vnfm-migration.kubernetes-io-info" .| nindent 4 }}
+  annotations:
+  {{- include "eric-vm-vnfm-migration.helm-annotations" .| nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  serviceName: {{ template "eric-vm-vnfm-migration.name" . }}
+  selector:
+    matchLabels:
+      app: {{ template "eric-vm-vnfm-migration.name" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "eric-vm-vnfm-migration.name" . }}
+        release: {{ .Release.Name }}
+        {{- include "eric-vm-vnfm-migration.kubernetes-io-info" .| nindent 8 }}
+    spec:
+      {{- if .Values.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds.vmvnfmmigration | int }}
+      {{- end }}
+      serviceAccountName: {{ template "eric-vm-vnfm-migration.name" . }}-sa
+      {{- if include "eric-vm-vnfm-migration.pullSecrets" . }}
+      imagePullSecrets:
+        - name: {{ template "eric-vm-vnfm-migration.pullSecrets" . }}
+      {{- end }}
+      securityContext:
+        fsGroup: 261482
+        fsGroupChangePolicy: "Always"
+      volumes:
+        - name: kube-control
+          hostPath:
+            path: {{ .Values.kubectl.mountPath }}
+            type: File
+      tolerations:
+        {{- toYaml (index .Values "tolerations" "eric-vm-vnfm-migration") | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{ template "vnflcm-migration.mainImagePath" .}}
+          imagePullPolicy: {{ template "eric-eo-evnfm-vm.imagePullPolicy" . }}
+          resources:
+            {{- toYaml (index .Values "resources" "eric-vm-vnfm-migration") | nindent 12 }}
+          workingDir: /home/eric-vm-vnfm-migration/
+          env:
+            - name: TZ
+              value: {{ .Values.global.timezone }}
+            - name: "SERVICE_VERSION"
+              value: {{ (fromYaml (.Files.Get "eric-product-info.yaml")).images.mainImage.tag | quote }}
+            - name: "SERVICE_ID"
+              value: {{ (fromYaml (.Files.Get "eric-product-info.yaml")).images.mainImage.name | quote }}
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          securityContext:
+            privileged: false
+            allowPrivilegeEscalation: false
+            runAsNonRoot: true
+            runAsUser: 261482
+            runAsGroup: 261482
+          volumeMounts:
+            - name: migration-data
+              mountPath: {{ .Values.persistentVolumeClaim.mountPath }}
+              readOnly: false
+            - name: kube-control
+              mountPath: {{ .Values.kubectl.mountPath }}
+      {{- if .Values.nodeSelector}}
+      nodeSelector: {{ toYaml .Values.nodeSelector | nindent 8 }}
+      {{- else if .Values.global.nodeSelector }}
+      nodeSelector: {{ toYaml .Values.global.nodeSelector | nindent 8 }}
+      {{- end}}
+  volumeClaimTemplates:
+  - metadata:
+      name: migration-data
+      labels:
+        app: {{ template "eric-vm-vnfm-migration.name" . }}
+        release: {{ .Release.Name }}
+        heritage: Tiller
+    spec:
+      accessModes:
+        - {{ .Values.persistentVolumeClaim.accessMode | quote }}
+      resources:
+        requests:
+          storage: {{ .Values.persistentVolumeClaim.size | quote }}
+      storageClassName: {{ template "eric-vm-vnfm-migration.defaultStorageClassName" . }}
+{{- end }}
